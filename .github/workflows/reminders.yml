@@ -1,0 +1,28 @@
+name: SLA reminders
+# Runs the scan and posts the digest to Slack.
+# The weekday schedule is commented out until the team agrees on the rules and the Slack channel.
+on:
+  workflow_dispatch:
+    inputs:
+      send:
+        description: "Post to Slack (otherwise preview only, printed in the job log)"
+        type: boolean
+        default: false
+  # schedule:
+  #   - cron: "0 13 * * 1-5"  # 9:00 Toronto (EDT) on weekdays
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scan Jira
+        env:
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          python -m larry scan --config config/kinaxis.toml ${{ (github.event_name == 'schedule' || inputs.send) && '--send' || '' }}
