@@ -1,0 +1,91 @@
+# Larry config for the Kinaxis pilot. Copy this file to add another client board.
+# Secrets come from environment variables, never this file:
+#   JIRA_EMAIL, JIRA_API_TOKEN            (read-only use of the Jira REST API)
+#   SLACK_BOT_TOKEN or SLACK_WEBHOOK_URL  (only needed with --send)
+
+# Count weekends as idle time? false = calendar days.
+business_days = true
+
+[jira]
+base_url = "https://fenix-solutions.atlassian.net"
+# JSM SLA fields on the FSI Service Desk (FSISD).
+sla_fields = ["customfield_10045", "customfield_10046"]  # Time to resolution, Time to first response
+# Board tickets without SLA fields borrow the clock from their linked service desk request.
+sla_link_types = ["Problem/Incident"]
+sla_link_projects = ["FSISD"]
+
+[sla]
+# Flag an SLA as "at risk" when less than this share of the goal is left...
+at_risk_fraction = 0.25
+# ...or when fewer than this many hours remain.
+at_risk_hours = 4
+
+# Higher priority tickets get nudged sooner (thresholds are multiplied).
+[priority_multipliers]
+Highest = 0.5
+Urgent = 0.5
+High = 0.75
+
+[slack]
+channel = "#kinaxis-support"  # placeholder: where the daily digest goes
+# Jira display name or accountId -> Slack member ID, so the digest @mentions people.
+[slack.users]
+# "Mohamed Jama" = "U0XXXXXXX"
+# "McGowan" = "U0XXXXXXX"
+
+# ---------------------------------------------------------------------------
+# Pilot board: Kinaxis 2026 Annual Support & Maintenance
+# waiting_on: "client" (we chase the client), "team" (we nudge dev/QA), "ignore"
+# ---------------------------------------------------------------------------
+[[boards]]
+name = "Kinaxis Support & Maintenance"
+jql = "project = KIN26SUP AND statusCategory != Done ORDER BY updated ASC"
+follow_linked_sla = true
+
+  [boards.statuses."Ready for Client UAT"]
+  waiting_on = "client"
+  remind_after_days = 3
+  escalate_after_days = 10
+  action = "Ask the client to review and sign off, or close it"
+
+  [boards.statuses."QA"]
+  waiting_on = "team"
+  remind_after_days = 2
+  escalate_after_days = 5
+  action = "Nudge QA to finish testing"
+
+  [boards.statuses."In Progress"]
+  waiting_on = "team"
+  remind_after_days = 5
+  escalate_after_days = 10
+  action = "Ask the developer for a status update"
+
+  [boards.statuses."Selected for Development"]
+  waiting_on = "team"
+  remind_after_days = 10
+  escalate_after_days = 20
+  action = "Confirm it is scheduled, or move it back to Backlog"
+
+  [boards.statuses."Backlog"]
+  waiting_on = "ignore"
+
+# Service desk requests (uncomment to include the whole FSISD queue for Kinaxis).
+# [[boards]]
+# name = "FSI Service Desk – Kinaxis"
+# jql = "project = FSISD AND Organizations = Kinaxis AND statusCategory != Done"
+#
+#   [boards.statuses."Pending"]
+#   waiting_on = "client"
+#   remind_after_days = 3
+#   escalate_after_days = 10
+#   action = "Follow up with the client on the open question"
+#
+#   [boards.statuses."To Do"]
+#   waiting_on = "team"
+#   remind_after_days = 1
+#   action = "Triage and respond to the client"
+#
+#   [boards.statuses."In Progress"]
+#   waiting_on = "team"
+#   remind_after_days = 5
+#   action = "Post a progress update for the client"
